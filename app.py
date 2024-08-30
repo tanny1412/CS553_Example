@@ -44,6 +44,10 @@ def respond(
             do_sample=True,
             top_p=top_p,
         ):
+            if stop_inference:
+                response = "Inference cancelled."
+                yield history + [(message, response)]
+                return
             token = output['generated_text'][-1]['content']
             response += token
             yield history + [(message, response)]  # Yield history + new response
@@ -66,6 +70,10 @@ def respond(
             temperature=temperature,
             top_p=top_p,
         ):
+            if stop_inference:
+                response = "Inference cancelled."
+                yield history + [(message, response)]
+                return
             if stop_inference:
                 response = "Inference cancelled."
                 break
