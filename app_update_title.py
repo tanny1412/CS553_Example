@@ -1,14 +1,8 @@
 import gradio as gr
 from huggingface_hub import InferenceClient
-import time
-import threading
 
 # Inference client setup
 client = InferenceClient("HuggingFaceH4/zephyr-7b-beta")
-
-# Global flag to determine the mode and to handle cancellation
-use_local = False
-stop_inference = False
 
 def respond(
     message,
@@ -17,45 +11,28 @@ def respond(
     max_tokens,
     temperature,
     top_p,
-    use_local_model,
 ):
-    global use_local, stop_inference
-    use_local = use_local_model
-    stop_inference = False  # Reset cancellation flag
-
-    if use_local:
-        # Simulate local inference
-        time.sleep(2)  # simulate a delay
-        response = "This is a response from the local model."
+    messages = [{"role": "system", "content": system_message}]
+    
+    for val in history:
+        if val[0]:
+            messages.append({"role": "user", "content": val[0]})
+        if val[1]:
+            messages.append({"role": "assistant", "content": val[1]})
+    
+    messages.append({"role": "user", "content": message})
+    
+    response = ""
+    for message in client.chat_completion(
+        messages,
+        max_tokens=max_tokens,
+        stream=True,
+        temperature=temperature,
+        top_p=top_p,
+    ):
+        token = message.choices[0].delta.content
+        response += token
         yield response
-    else:
-        # API-based inference
-        messages = [{"role": "system", "content": system_message}]
-        for val in history:
-            if val[0]:
-                messages.append({"role": "user", "content": val[0]})
-            if val[1]:
-                messages.append({"role": "assistant", "content": val[1]})
-        messages.append({"role": "user", "content": message})
-
-        response = ""
-        for message in client.chat_completion(
-            messages,
-            max_tokens=max_tokens,
-            stream=True,
-            temperature=temperature,
-            top_p=top_p,
-        ):
-            if stop_inference:
-                yield "Inference cancelled."
-                break
-            token = message.choices[0].delta.content
-            response += token
-            yield response
-
-def cancel_inference():
-    global stop_inference
-    stop_inference = True
 
 # Custom CSS for a fancy look
 custom_css = """
@@ -117,8 +94,6 @@ demo = gr.ChatInterface(
             step=0.05,
             label="Top-p (nucleus sampling)",
         ),
-        gr.Checkbox(label="Use Local Model", value=False),
-        gr.Button("Cancel Inference", variant="danger", on_click=cancel_inference),
     ],
     css=custom_css,
     title="🌟 Fancy AI Chatbot 🌟",
