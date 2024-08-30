@@ -56,6 +56,7 @@ def respond(
 def cancel_inference():
     global stop_inference
     stop_inference = True
+    return gr.update(label="Inference cancelled.")
 
 # Custom CSS for a fancy look
 custom_css = """
@@ -118,12 +119,15 @@ demo = gr.ChatInterface(
             label="Top-p (nucleus sampling)",
         ),
         gr.Checkbox(label="Use Local Model", value=False),
-        gr.Button("Cancel Inference", variant="danger", on_click=cancel_inference),
+        gr.Button("Cancel Inference"),
     ],
     css=custom_css,
     title="🌟 Fancy AI Chatbot 🌟",
     description="Interact with the AI chatbot using customizable settings below."
 )
+
+cancel_button = demo.add_button("Cancel Inference", variant="danger", elem_id="cancel_button")
+cancel_button.click(cancel_inference, None, None)
 
 if __name__ == "__main__":
     demo.launch()
