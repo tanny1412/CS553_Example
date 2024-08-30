@@ -13,7 +13,6 @@ stop_inference = False
 
 def respond(
     message,
-    history: list[tuple[str, str]],
     system_message,
     max_tokens,
     temperature,
@@ -24,15 +23,8 @@ def respond(
     stop_inference = False  # Reset cancellation flag
 
     if use_local_model:
-        # Simulate local inference
+        # Simulate local inference (ignoring history)
         messages = [{"role": "system", "content": system_message}]
-
-        for val in history:
-            if val[0]:
-                messages.append({"role": "user", "content": val[0]})
-            if val[1]:
-                messages.append({"role": "assistant", "content": val[1]})
-
         messages.append({"role": "user", "content": message})
 
         response = ""
@@ -47,18 +39,9 @@ def respond(
             response += token
             yield response  # Yielding response directly
 
-        # Ensure the history is updated after generating the response
-        history[-1] = (message, response)  # Update the last tuple in history with the full response
-        yield history  # Yield the updated history
-
     else:
-        # API-based inference
+        # API-based inference (ignoring history)
         messages = [{"role": "system", "content": system_message}]
-        for val in history:
-            if val[0]:
-                messages.append({"role": "user", "content": val[0]})
-            if val[1]:
-                messages.append({"role": "assistant", "content": val[1]})
         messages.append({"role": "user", "content": message})
 
         response = ""
@@ -75,10 +58,6 @@ def respond(
             token = message_chunk.choices[0].delta.content
             response += token
             yield response  # Yielding response directly
-
-        # Ensure the history is updated after generating the response
-        history[-1] = (message, response)  # Update the last tuple in history with the full response
-        yield history  # Yield the updated history
 
 def cancel_inference():
     global stop_inference
@@ -141,7 +120,7 @@ with gr.Blocks(css=custom_css) as demo:
 
     with gr.Row():
         max_tokens = gr.Slider(minimum=1, maximum=2048, value=512, step=1, label="Max new tokens")
-        temperature = gr.Slider(minimum=0.1, maximum = 4.0, value=0.7, step=0.1, label="Temperature")
+        temperature = gr.Slider(minimum=0.1, maximum=4.0, value=0.7, step=0.1, label="Temperature")
         top_p = gr.Slider(minimum=0.1, maximum=1.0, value=0.95, step=0.05, label="Top-p (nucleus sampling)")
 
     chat_history = gr.Chatbot(label="Chat")
@@ -150,11 +129,9 @@ with gr.Blocks(css=custom_css) as demo:
 
     cancel_button = gr.Button("Cancel Inference", variant="danger")
 
-    def chat_fn(message, history):
-        history.append((message, ""))  # Initialize with empty response
+    def chat_fn(message):
         response_gen = respond(
             message,
-            history,
             system_message.value,
             max_tokens.value,
             temperature.value,
@@ -165,11 +142,9 @@ with gr.Blocks(css=custom_css) as demo:
         for response in response_gen:
             full_response += response  # Accumulate the full response
 
-        # Replace the last history tuple with the complete message-response pair
-        history[-1] = (message, full_response)
-        yield history
+        return full_response
 
-    user_input.submit(chat_fn, [user_input, chat_history], chat_history)
+    user_input.submit(chat_fn, user_input, chat_history)
     cancel_button.click(cancel_inference)
 
 if __name__ == "__main__":
