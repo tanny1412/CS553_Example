@@ -6,7 +6,7 @@ from transformers import pipeline
 
 # Inference client setup
 client = InferenceClient("HuggingFaceH4/zephyr-7b-beta")
-#pipe = pipeline("text-generation", "microsoft/Phi-3-mini-4k-instruct", torch_dtype=torch.bfloat16, device_map="auto")
+# pipe = pipeline("text-generation", "microsoft/Phi-3-mini-4k-instruct", torch_dtype=torch.bfloat16, device_map="auto")
 
 # Global flag to handle cancellation
 stop_inference = False
@@ -48,7 +48,7 @@ def respond(
             yield response  # Yielding response directly
 
         # Ensure the history is updated after generating the response
-        history.append((message, response))
+        history[-1] = (message, response)  # Update the last tuple in history with the full response
         yield history  # Yield the updated history
 
     else:
@@ -77,7 +77,7 @@ def respond(
             yield response  # Yielding response directly
 
         # Ensure the history is updated after generating the response
-        history.append((message, response))
+        history[-1] = (message, response)  # Update the last tuple in history with the full response
         yield history  # Yield the updated history
 
 def cancel_inference():
@@ -141,7 +141,7 @@ with gr.Blocks(css=custom_css) as demo:
 
     with gr.Row():
         max_tokens = gr.Slider(minimum=1, maximum=2048, value=512, step=1, label="Max new tokens")
-        temperature = gr.Slider(minimum=0.1, maximum=4.0, value=0.7, step=0.1, label="Temperature")
+        temperature = gr.Slider(minimum=0.1, maximum 4.0, value=0.7, step=0.1, label="Temperature")
         top_p = gr.Slider(minimum=0.1, maximum=1.0, value=0.95, step=0.05, label="Top-p (nucleus sampling)")
 
     chat_history = gr.Chatbot(label="Chat")
@@ -161,10 +161,13 @@ with gr.Blocks(css=custom_css) as demo:
             top_p.value,
             use_local_model.value,
         )
+        full_response = ""
         for response in response_gen:
-            # Replace the last history tuple with the complete message-response pair
-            history[-1] = (message, response)
-            yield history
+            full_response += response  # Accumulate the full response
+
+        # Replace the last history tuple with the complete message-response pair
+        history[-1] = (message, full_response)
+        yield history
 
     user_input.submit(chat_fn, [user_input, chat_history], chat_history)
     cancel_button.click(cancel_inference)
