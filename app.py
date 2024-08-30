@@ -6,7 +6,7 @@ from transformers import pipeline
 
 # Inference client setup
 client = InferenceClient("HuggingFaceH4/zephyr-7b-beta")
-pipe = pipeline("text-generation", "microsoft/Phi-3-mini-4k-instruct", torch_dtype=torch.bfloat16, device_map="auto")
+#pipe = pipeline("text-generation", "microsoft/Phi-3-mini-4k-instruct", torch_dtype=torch.bfloat16, device_map="auto")
 
 # Global flag to handle cancellation
 stop_inference = False
@@ -47,6 +47,7 @@ def respond(
             response += token
             yield response  # Yielding response directly
 
+        # Ensure the history is updated after generating the response
         history.append((message, response))
         yield history  # Yield the updated history
 
@@ -75,6 +76,7 @@ def respond(
             response += token
             yield response  # Yielding response directly
 
+        # Ensure the history is updated after generating the response
         history.append((message, response))
         yield history  # Yield the updated history
 
@@ -149,6 +151,7 @@ with gr.Blocks(css=custom_css) as demo:
     cancel_button = gr.Button("Cancel Inference", variant="danger")
 
     def chat_fn(message, history):
+        history.append((message, ""))  # Initialize with empty response
         response_gen = respond(
             message,
             history,
@@ -159,6 +162,7 @@ with gr.Blocks(css=custom_css) as demo:
             use_local_model.value,
         )
         for response in response_gen:
+            # Replace the last history tuple with the complete message-response pair
             history[-1] = (message, response)
             yield history
 
