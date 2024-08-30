@@ -1,6 +1,5 @@
 import gradio as gr
 from huggingface_hub import InferenceClient
-import time
 import torch
 from transformers import pipeline
 
@@ -13,15 +12,19 @@ stop_inference = False
 
 def respond(
     message,
-    history: list[tuple[str, str]],
-    system_message,
-    max_tokens,
-    temperature,
-    top_p,
-    use_local_model,
+    history=None,  # Default to None
+    system_message="You are a friendly Chatbot.",
+    max_tokens=512,
+    temperature=0.7,
+    top_p=0.95,
+    use_local_model=False,
 ):
     global stop_inference
     stop_inference = False  # Reset cancellation flag
+
+    # Initialize history if it's None
+    if history is None:
+        history = []
 
     if use_local_model:
         # Simulate local inference (ignoring history)
@@ -34,14 +37,14 @@ def respond(
         messages.append({"role": "user", "content": message})
 
         response = ""
-        for message in pipe(
+        for output in pipe(
             messages,
             max_new_tokens=max_tokens,
             temperature=temperature,
             do_sample=True,
             top_p=top_p,
         ):
-            token = message['generated_text'][-1]['content']
+            token = output['generated_text'][-1]['content']
             response += token
             yield response  # Yielding response directly
 
@@ -140,24 +143,8 @@ with gr.Blocks(css=custom_css) as demo:
 
     cancel_button = gr.Button("Cancel Inference", variant="danger")
 
-    # def chat_fn(message):
-    #     response_gen = respond(
-    #         message,
-    #         # history: list[tuple[str, str]],
-    #         system_message.value,
-    #         max_tokens.value,
-    #         temperature.value,
-    #         top_p.value,
-    #         use_local_model.value,
-    #     )
-    #     full_response = ""
-    #     for response in response_gen:
-    #         full_response += response  # Accumulate the full response
-
-        # return full_response
-    chat_fn = respond
-
-    user_input.submit(chat_fn, inputs=user_input, outputs=chat_history)
+    # Adjusted to ensure history is maintained and passed correctly
+    user_input.submit(respond, [user_input, chat_history, system_message, max_tokens, temperature, top_p, use_local_model], chat_history)
     cancel_button.click(cancel_inference)
 
 if __name__ == "__main__":
