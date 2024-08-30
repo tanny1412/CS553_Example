@@ -24,7 +24,8 @@ def respond(
         # Simulate local inference
         time.sleep(2)  # simulate a delay
         response = "This is a response from the local model."
-        yield response
+        history.append((message, response))
+        yield history
     else:
         # API-based inference
         messages = [{"role": "system", "content": system_message}]
@@ -44,11 +45,13 @@ def respond(
             top_p=top_p,
         ):
             if stop_inference:
-                yield "Inference cancelled."
+                history.append((message, "Inference cancelled."))
+                yield history
                 break
             token = message.choices[0].delta.content
             response += token
-            yield response
+            history.append((message, response))
+            yield history
 
 def cancel_inference():
     global stop_inference
@@ -121,7 +124,7 @@ with gr.Blocks(css=custom_css) as demo:
     cancel_button = gr.Button("Cancel Inference", variant="danger")
 
     def chat_fn(message, history):
-        return respond(message, history, system_message.value, max_tokens.value, temperature.value, top_p.value, use_local_model.value)
+        return respond(message, history)
 
     user_input.submit(chat_fn, [user_input, chat_history], chat_history)
     cancel_button.click(cancel_inference)
