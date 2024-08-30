@@ -124,10 +124,18 @@ with gr.Blocks(css=custom_css) as demo:
     cancel_button = gr.Button("Cancel Inference", variant="danger")
 
     def chat_fn(message, history):
-        return respond(message, history)
+        return respond(
+            message,
+            history,
+            system_message.value,
+            max_tokens.value,
+            temperature.value,
+            top_p.value,
+            use_local_model.value,
+        )
 
     user_input.submit(chat_fn, [user_input, chat_history], chat_history)
     cancel_button.click(cancel_inference)
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(share=True)
