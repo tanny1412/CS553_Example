@@ -1,13 +1,11 @@
 import gradio as gr
 from huggingface_hub import InferenceClient
 import time
-import threading
 
 # Inference client setup
 client = InferenceClient("HuggingFaceH4/zephyr-7b-beta")
 
-# Global flag to determine the mode and to handle cancellation
-use_local = False
+# Global flag to handle cancellation
 stop_inference = False
 
 def respond(
@@ -19,11 +17,10 @@ def respond(
     top_p,
     use_local_model,
 ):
-    global use_local, stop_inference
-    use_local = use_local_model
+    global stop_inference
     stop_inference = False  # Reset cancellation flag
 
-    if use_local:
+    if use_local_model:
         # Simulate local inference
         time.sleep(2)  # simulate a delay
         response = "This is a response from the local model."
@@ -56,7 +53,6 @@ def respond(
 def cancel_inference():
     global stop_inference
     stop_inference = True
-    return gr.update(label="Inference cancelled.")
 
 # Custom CSS for a fancy look
 custom_css = """
@@ -105,29 +101,30 @@ custom_css = """
 """
 
 # Define the interface
-demo = gr.ChatInterface(
-    respond,
-    additional_inputs=[
-        gr.Textbox(value="You are a friendly Chatbot.", label="System message", interactive=True),
-        gr.Slider(minimum=1, maximum=2048, value=512, step=1, label="Max new tokens"),
-        gr.Slider(minimum=0.1, maximum=4.0, value=0.7, step=0.1, label="Temperature"),
-        gr.Slider(
-            minimum=0.1,
-            maximum=1.0,
-            value=0.95,
-            step=0.05,
-            label="Top-p (nucleus sampling)",
-        ),
-        gr.Checkbox(label="Use Local Model", value=False),
-        gr.Button("Cancel Inference"),
-    ],
-    css=custom_css,
-    title="🌟 Fancy AI Chatbot 🌟",
-    description="Interact with the AI chatbot using customizable settings below."
-)
+with gr.Blocks(css=custom_css) as demo:
+    gr.Markdown("<h1 style='text-align: center;'>🌟 Fancy AI Chatbot 🌟</h1>")
+    gr.Markdown("Interact with the AI chatbot using customizable settings below.")
 
-cancel_button = demo.add_button("Cancel Inference", variant="danger", elem_id="cancel_button")
-cancel_button.click(cancel_inference, None, None)
+    with gr.Row():
+        system_message = gr.Textbox(value="You are a friendly Chatbot.", label="System message", interactive=True)
+        use_local_model = gr.Checkbox(label="Use Local Model", value=False)
+
+    with gr.Row():
+        max_tokens = gr.Slider(minimum=1, maximum=2048, value=512, step=1, label="Max new tokens")
+        temperature = gr.Slider(minimum=0.1, maximum=4.0, value=0.7, step=0.1, label="Temperature")
+        top_p = gr.Slider(minimum=0.1, maximum=1.0, value=0.95, step=0.05, label="Top-p (nucleus sampling)")
+
+    chat_history = gr.Chatbot(label="Chat")
+
+    user_input = gr.Textbox(show_label=False, placeholder="Type your message here...")
+
+    cancel_button = gr.Button("Cancel Inference", variant="danger")
+
+    def chat_fn(message, history):
+        return respond(message, history, system_message.value, max_tokens.value, temperature.value, top_p.value, use_local_model.value)
+
+    user_input.submit(chat_fn, [user_input, chat_history], chat_history)
+    cancel_button.click(cancel_inference)
 
 if __name__ == "__main__":
     demo.launch()
