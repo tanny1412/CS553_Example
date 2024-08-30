@@ -141,7 +141,7 @@ with gr.Blocks(css=custom_css) as demo:
 
     with gr.Row():
         max_tokens = gr.Slider(minimum=1, maximum=2048, value=512, step=1, label="Max new tokens")
-        temperature = gr.Slider(minimum=0.1, maximum 4.0, value=0.7, step=0.1, label="Temperature")
+        temperature = gr.Slider(minimum=0.1, maximum = 4.0, value=0.7, step=0.1, label="Temperature")
         top_p = gr.Slider(minimum=0.1, maximum=1.0, value=0.95, step=0.05, label="Top-p (nucleus sampling)")
 
     chat_history = gr.Chatbot(label="Chat")
