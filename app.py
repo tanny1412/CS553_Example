@@ -129,7 +129,7 @@ with gr.Blocks(css=custom_css) as demo:
 
     cancel_button = gr.Button("Cancel Inference", variant="danger")
 
-    def chat_fn(message):
+    def chat_fn(message, chat_history):
         response_gen = respond(
             message,
             system_message.value,
@@ -142,9 +142,11 @@ with gr.Blocks(css=custom_css) as demo:
         for response in response_gen:
             full_response += response  # Accumulate the full response
 
-        return full_response
+        # Append the new message-response pair to chat_history
+        chat_history.append((message, full_response))
+        return chat_history
 
-    user_input.submit(chat_fn, user_input, chat_history)
+    user_input.submit(chat_fn, [user_input, chat_history], chat_history)
     cancel_button.click(cancel_inference)
 
 if __name__ == "__main__":
