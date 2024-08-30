@@ -1,9 +1,12 @@
 import gradio as gr
 from huggingface_hub import InferenceClient
 import time
+import torch
+from transformers import pipeline
 
 # Inference client setup
 client = InferenceClient("HuggingFaceH4/zephyr-7b-beta")
+pipe = pipeline("text-generation", "microsoft/Phi-3-mini-4k-instruct", torch_dtype=torch.bfloat16, device_map="auto")
 
 # Global flag to handle cancellation
 stop_inference = False
@@ -22,10 +25,31 @@ def respond(
 
     if use_local_model:
         # Simulate local inference
-        time.sleep(2)  # simulate a delay
-        response = "This is a response from the local model."
+        messages = [{"role": "system", "content": system_message}]
+
+        for val in history:
+            if val[0]:
+                messages.append({"role": "user", "content": val[0]})
+            if val[1]:
+                messages.append({"role": "assistant", "content": val[1]})
+
+        messages.append({"role": "user", "content": message})
+
+        response = ""
+        for message in pipe(
+            messages,
+            max_new_tokens=max_tokens,
+            temperature=temperature,
+            do_sample=True,
+            top_p=top_p,
+        ):
+            token = message['generated_text'][-1]['content']
+            response += token
+            yield response  # Yielding response directly
+
         history.append((message, response))
-        yield history
+        yield history  # Yield the updated history
+
     else:
         # API-based inference
         messages = [{"role": "system", "content": system_message}]
@@ -49,12 +73,10 @@ def respond(
                 break
             token = message_chunk.choices[0].delta.content
             response += token
-            history[-1] = (message, response)
-            yield history  # Yield the history list of tuples
+            yield response  # Yielding response directly
 
-        # Finalize response in history
-        history[-1] = (message, response)  # Update with the full response
-        yield history
+        history.append((message, response))
+        yield history  # Yield the updated history
 
 def cancel_inference():
     global stop_inference
@@ -127,8 +149,7 @@ with gr.Blocks(css=custom_css) as demo:
     cancel_button = gr.Button("Cancel Inference", variant="danger")
 
     def chat_fn(message, history):
-        history.append((message, ""))  # Initialize with empty response
-        return respond(
+        response_gen = respond(
             message,
             history,
             system_message.value,
@@ -137,6 +158,9 @@ with gr.Blocks(css=custom_css) as demo:
             top_p.value,
             use_local_model.value,
         )
+        for response in response_gen:
+            history[-1] = (message, response)
+            yield history
 
     user_input.submit(chat_fn, [user_input, chat_history], chat_history)
     cancel_button.click(cancel_inference)
