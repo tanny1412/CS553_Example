@@ -46,7 +46,7 @@ def respond(
         ):
             token = output['generated_text'][-1]['content']
             response += token
-            yield response  # Yielding response directly
+            yield history + [(message, response)]  # Yield history + new response
 
     else:
         # API-based inference (ignoring history)
@@ -71,7 +71,8 @@ def respond(
                 break
             token = message_chunk.choices[0].delta.content
             response += token
-            yield response  # Yielding response directly
+            yield history + [(message, response)]  # Yield history + new response
+
 
 def cancel_inference():
     global stop_inference
@@ -145,6 +146,7 @@ with gr.Blocks(css=custom_css) as demo:
 
     # Adjusted to ensure history is maintained and passed correctly
     user_input.submit(respond, [user_input, chat_history, system_message, max_tokens, temperature, top_p, use_local_model], chat_history)
+
     cancel_button.click(cancel_inference)
 
 if __name__ == "__main__":
