@@ -37,7 +37,7 @@ def respond(
         messages.append({"role": "user", "content": message})
 
         response = ""
-        for message_chunk in client.chat_completion(
+        for message in client.chat_completion(
             messages,
             max_tokens=max_tokens,
             stream=True,
@@ -45,16 +45,13 @@ def respond(
             top_p=top_p,
         ):
             if stop_inference:
-                response = "Inference cancelled."
+                history.append((message, "Inference cancelled."))
+                yield history
                 break
-            token = message_chunk.choices[0].delta.content
+            token = message.choices[0].delta.content
             response += token
-            history[-1] = (message, response)
+            history.append((message, response))
             yield history
-
-        # Finalize response in history
-        history.append((message, response))
-        yield history
 
 def cancel_inference():
     global stop_inference
@@ -127,7 +124,6 @@ with gr.Blocks(css=custom_css) as demo:
     cancel_button = gr.Button("Cancel Inference", variant="danger")
 
     def chat_fn(message, history):
-        history.append((message, ""))  # Initialize with empty response
         return respond(
             message,
             history,
