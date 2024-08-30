@@ -50,10 +50,10 @@ def respond(
             token = message_chunk.choices[0].delta.content
             response += token
             history[-1] = (message, response)
-            yield history
+            yield history  # Yield the history list of tuples
 
         # Finalize response in history
-        history.append((message, response))
+        history[-1] = (message, response)  # Update with the full response
         yield history
 
 def cancel_inference():
@@ -142,4 +142,4 @@ with gr.Blocks(css=custom_css) as demo:
     cancel_button.click(cancel_inference)
 
 if __name__ == "__main__":
-    demo.launch(share=True)
+    demo.launch(share=False)  # Remove share=True because it's not supported on HF Spaces
