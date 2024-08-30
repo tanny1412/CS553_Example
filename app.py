@@ -13,6 +13,7 @@ stop_inference = False
 
 def respond(
     message,
+    history: list[tuple[str, str]],
     system_message,
     max_tokens,
     temperature,
@@ -25,6 +26,11 @@ def respond(
     if use_local_model:
         # Simulate local inference (ignoring history)
         messages = [{"role": "system", "content": system_message}]
+        for val in history:
+            if val[0]:
+                messages.append({"role": "user", "content": val[0]})
+            if val[1]:
+                messages.append({"role": "assistant", "content": val[1]})
         messages.append({"role": "user", "content": message})
 
         response = ""
@@ -42,6 +48,11 @@ def respond(
     else:
         # API-based inference (ignoring history)
         messages = [{"role": "system", "content": system_message}]
+        for val in history:
+            if val[0]:
+                messages.append({"role": "user", "content": val[0]})
+            if val[1]:
+                messages.append({"role": "assistant", "content": val[1]})
         messages.append({"role": "user", "content": message})
 
         response = ""
@@ -129,7 +140,7 @@ with gr.Blocks(css=custom_css) as demo:
 
     cancel_button = gr.Button("Cancel Inference", variant="danger")
 
-    def chat_fn(message, chat_history):
+    def chat_fn(message):
         response_gen = respond(
             message,
             system_message.value,
@@ -142,11 +153,9 @@ with gr.Blocks(css=custom_css) as demo:
         for response in response_gen:
             full_response += response  # Accumulate the full response
 
-        # Append the new message-response pair to chat_history
-        chat_history.append((message, full_response))
-        return chat_history
+        return full_response
 
-    user_input.submit(chat_fn, [user_input, chat_history], chat_history)
+    user_input.submit(chat_fn, inputs=user_input, outputs=chat_history)
     cancel_button.click(cancel_inference)
 
 if __name__ == "__main__":
