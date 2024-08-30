@@ -27,7 +27,7 @@ def respond(
         history = []
 
     if use_local_model:
-        # Simulate local inference (ignoring history)
+        # local inference 
         messages = [{"role": "system", "content": system_message}]
         for val in history:
             if val[0]:
@@ -53,7 +53,7 @@ def respond(
             yield history + [(message, response)]  # Yield history + new response
 
     else:
-        # API-based inference (ignoring history)
+        # API-based inference 
         messages = [{"role": "system", "content": system_message}]
         for val in history:
             if val[0]:
