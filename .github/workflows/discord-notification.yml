@@ -14,6 +14,6 @@ jobs:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           curl -X POST -H "Content-Type: application/json" \
-          -d "{\"content\": \"A new commit was pushed to the main branch by $GITHUB_ACTOR.\"}" \
+          -d "{\"content\": \"A new commit was pushed to the main branch by $GITHUB_ACTOR. :smile: Ponytails rock!\"}" \
           $DISCORD_WEBHOOK_URL
 
